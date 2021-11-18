@@ -28,6 +28,12 @@
     <div v-if="debugMode">
       <h3>デバッグ情報</h3>
       <div>
+        {{ getAbsolute }}
+        {{ getAlpha }}
+        {{ getBeta }}
+        {{ getGamma }}
+      </div>
+      <div>
         <textarea readonly v-model="logMessages"></textarea>
       </div>
     </div>
@@ -47,6 +53,12 @@ export default {
     return {
       cube: null,
       ready: false,
+      orientation: {
+        absolute: NaN,
+        alpha: NaN,
+        beta: NaN,
+        gamma: NaN,
+      },
       logMessages: "",
     }
   },
@@ -57,6 +69,18 @@ export default {
     getLog: function () {
       return this.logMessages;
     },
+    getAbsolute: function () {
+      return this.orientation.absolute;
+    },
+    getAlpha: function () {
+      return this.orientation.alpha;
+    },
+    getBeta: function () {
+      return this.orientation.beta;
+    },
+    getGamma: function () {
+      return this.orientation.gamma;
+    },
   },
   created: function () {
     console.log("Hello World!");
@@ -64,7 +88,18 @@ export default {
     this.logMessages = "";
     this.cube = new coreCube({name: "cube1", logger: this.debugLog});
   },
+  mounted: function () {
+    if (window.DeviceOrientationEvent) {
+      console.log("DeviceOrientation is supported");
+      window.addEventListener("deviceorientation", this.orientationHandler, false);
+    } else {
+      this.logMessages("ERROR:DeviceOrientation is not supported");
+    }
+  },
   beforeUnmount: async function () {
+    if (window.DeviceOrientationEvent) {
+      window.removeEventListener("deviceorientation", this.orientationHandler, false);
+    }
     if (this.cube.isConnected()) {
       console.log("force to disconnect with cube");
       await this.cube.disconnectDevice(true);
@@ -109,6 +144,13 @@ export default {
         this.ready = false;
       }
     },
+  },
+  orientationHandler: function (event) {
+    console.log(event);
+    this.orientation.absolute = event.absolute;
+    this.orientation.alpha = event.alpha;
+    this.orientation.beta = event.beta;
+    this.orientation.gamma = event.gamma;
   },
 }
 </script>
