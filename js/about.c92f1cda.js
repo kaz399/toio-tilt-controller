@@ -1,0 +1,2 @@
+(window["webpackJsonp"]=window["webpackJsonp"]||[]).push([["about"],{f820:function(n,t,e){"use strict";e.r(t);var c=e("7a23"),u={class:"about"},a=Object(c["f"])("h1",null,"かたむきコントローラー",-1),b=Object(c["f"])("p",null," スマホをかたむけるとキューブが動く！ ",-1),o=[a,b];function r(n,t){return Object(c["q"])(),Object(c["e"])("div",u,o)}var s=e("6b0d"),d=e.n(s);const f={},i=d()(f,[["render",r]]);t["default"]=i}}]);
+//# sourceMappingURL=about.c92f1cda.js.map
