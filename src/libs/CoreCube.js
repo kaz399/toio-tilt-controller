@@ -284,13 +284,13 @@ export class coreCube {
         return this.characteristics[chrName].chr.stopNotifications();
       });
 
-      const disabledNotifyChr = await Promise.all(stopNotifyChr);
+      const disabledNotifyChr = await Promise.allSettled(stopNotifyChr);
       disabledNotifyChr.forEach((chr) => {
-        const chrName = this.uuidToChrName[chr.uuid];
+        const chrName = this.uuidToChrName[chr.value.uuid];
         const registeredHandlers = this.characteristics[chrName].handler;
         this.logger(`remove handler ${chrName}`);
         registeredHandlers.forEach((handler) => {
-          chr.removeEventListener('characteristicvaluechanged', handler);
+          chr.value.removeEventListener('characteristicvaluechanged', handler);
         });
       });
 
@@ -312,7 +312,10 @@ export class coreCube {
       result = false;
     }
 
-    this._resetParams();
+    this._resetParams({
+      name: this.name,
+      logger: this.logger,
+    });
     return result;
   }
 
@@ -337,13 +340,14 @@ export class coreCube {
         return service.getCharacteristic(ch.uuid);
       });
       this.logger(characteristicsPromises);
-      const characteristics = await Promise.all(characteristicsPromises);
+      const characteristics = await Promise.allSettled(characteristicsPromises);
       this.logger('******** get characteristics');
       this.logger(characteristics);
 
       characteristics.forEach((ch) => {
-        const chrName = this.uuidToChrName[ch.uuid];
-        this.characteristics[chrName].chr = ch;
+        console.log(ch);
+        const chrName = this.uuidToChrName[ch.value.uuid];
+        this.characteristics[chrName].chr = ch.value;
       });
 
       this.logger('******** this.characteristics');

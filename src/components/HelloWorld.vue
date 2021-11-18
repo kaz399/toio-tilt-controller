@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    試作その1
+    試作その2
     <p>
       Vue + web bluetooth による
       <br />
@@ -155,6 +155,7 @@ export default {
         await this.cube.disconnectDevice(true);
         this.ready = false;
       }
+      console.log("disconnect with", this.cube.name)
     },
     orientationHandler: function (event) {
       this.orientation.alpha = event.alpha;
