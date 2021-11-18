@@ -28,10 +28,15 @@
     <div v-if="debugMode">
       <h3>デバッグ情報</h3>
       <div>
-        {{ getAbsolute }}
-        {{ getAlpha }}
-        {{ getBeta }}
-        {{ getGamma }}
+        <br />
+        alpha: {{ getAlpha }} <br />
+        beta: {{ getBeta }} <br />
+        gamma: {{ getGamma }} <br />
+        <br />
+        motorL: {{ motorL }}
+        motorR: {{ motorR }}
+        <br />
+        <br />
       </div>
       <div>
         <textarea readonly v-model="logMessages"></textarea>
@@ -42,6 +47,11 @@
 
 <script>
 import { coreCube } from "../libs/CoreCube.js";
+
+function roundToEven(n) {
+  var r = (0 < n) ? n % 2 : (n % 2) + 2;
+  return (1 < r) ?  Math.floor(n + 0.5) : Math.ceil(n - 0.5);
+}
 
 export default {
   name: 'HelloWorld',
@@ -54,11 +64,13 @@ export default {
       cube: null,
       ready: false,
       orientation: {
-        absolute: NaN,
         alpha: NaN,
         beta: NaN,
         gamma: NaN,
       },
+      speed: 0,
+      motorR: 0,
+      motorL: 0,
       logMessages: "",
     }
   },
@@ -144,13 +156,38 @@ export default {
         this.ready = false;
       }
     },
-  },
-  orientationHandler: function (event) {
-    console.log(event);
-    this.orientation.absolute = event.absolute;
-    this.orientation.alpha = event.alpha;
-    this.orientation.beta = event.beta;
-    this.orientation.gamma = event.gamma;
+    orientationHandler: function (event) {
+      this.orientation.alpha = event.alpha;
+      this.orientation.beta = event.beta;
+      this.orientation.gamma = event.gamma;
+
+      if (this.orientation.beta > 5) {
+        this.speed = (this.orientation.beta - 5) * -3;
+      } else if (this.orientation.beta < -5) {
+        this.speed = (this.orientation.beta + 5) * -3;
+      } else {
+        this.speed = 0;
+      }
+
+      if (this.orientation.gamma > 5) {
+        // right turn
+        let limitGamma = Math.min((this.orientation.gamma - 5), 50);
+        this.motorR = roundToEven(this.speed * (1 - (limitGamma / 25)));
+        this.motorL = roundToEven(this.speed);
+      } else if (this.orientation.gamma < -5) {
+        // left turn
+        let limitGamma = Math.max((this.orientation.gamma + 5), -50);
+        this.motorR = roundToEven(this.speed);
+        this.motorL = roundToEven(this.speed * (1 + (limitGamma / 25)));
+      } else {
+        this.motorR = roundToEven(this.speed);
+        this.motorL = roundToEven(this.speed);
+      }
+      if (this.ready) {
+        this.debugLog("motor:", this.motorL, this.motorR);
+        this.cube.setMotor(this.motorL, this.motorR);
+      }
+    },
   },
 }
 </script>
