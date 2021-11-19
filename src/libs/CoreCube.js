@@ -286,12 +286,16 @@ export class coreCube {
 
       const disabledNotifyChr = await Promise.allSettled(stopNotifyChr);
       disabledNotifyChr.forEach((chr) => {
-        const chrName = this.uuidToChrName[chr.value.uuid];
-        const registeredHandlers = this.characteristics[chrName].handler;
-        this.logger(`remove handler ${chrName}`);
-        registeredHandlers.forEach((handler) => {
-          chr.value.removeEventListener('characteristicvaluechanged', handler);
-        });
+        if (chr.status === "fulfilled") {
+          const chrName = this.uuidToChrName[chr.value.uuid];
+          const registeredHandlers = this.characteristics[chrName].handler;
+          this.logger(`remove handler ${chrName}`);
+          registeredHandlers.forEach((handler) => {
+            chr.value.removeEventListener('characteristicvaluechanged', handler);
+          });
+        } else {
+          this.logger('promise rejected:', chr.reason);
+        }
       });
 
       this.logger(`remove disconnectHandler`);
@@ -344,10 +348,14 @@ export class coreCube {
       this.logger('******** get characteristics');
       this.logger(characteristics);
 
-      characteristics.forEach((ch) => {
-        console.log(ch);
-        const chrName = this.uuidToChrName[ch.value.uuid];
-        this.characteristics[chrName].chr = ch.value;
+      characteristics.forEach((chr) => {
+        if (chr.status === 'fulfilled') {
+          console.log(chr);
+          const chrName = this.uuidToChrName[chr.value.uuid];
+          this.characteristics[chrName].chr = chr.value;
+        } else {
+          this.logger('promise rejected:', chr.reason);
+        }
       });
 
       this.logger('******** this.characteristics');
