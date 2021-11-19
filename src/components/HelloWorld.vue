@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    試作その2
+    試作その3
     <p>
       Vue + web bluetooth による
       <br />
@@ -81,17 +81,14 @@ export default {
     getLog: function () {
       return this.logMessages;
     },
-    getAbsolute: function () {
-      return this.orientation.absolute;
-    },
     getAlpha: function () {
-      return this.orientation.alpha;
+      return this.orientation.alpha.toFixed(3);
     },
     getBeta: function () {
-      return this.orientation.beta;
+      return this.orientation.beta.toFixed(3);
     },
     getGamma: function () {
-      return this.orientation.gamma;
+      return this.orientation.gamma.toFixed(3);
     },
   },
   created: function () {
