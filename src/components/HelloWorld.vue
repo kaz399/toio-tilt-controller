@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    試作その3
+    試作その4
     <p>
       Vue + web bluetooth による
       <br />
@@ -9,7 +9,7 @@
     </p>
     <h3>toio &trade; core cube と接続</h3>
     <br />
-    <div v-if="cube.isConnected()">
+    <div v-if="isConnecting">
       <button v-on:click="disconnectWithCube">せ つ だ ん</button>
       <div v-if="cubeIsReady">
         <br />
@@ -63,10 +63,11 @@ export default {
     return {
       cube: null,
       ready: false,
+      connecting: false,
       orientation: {
-        alpha: NaN,
-        beta: NaN,
-        gamma: NaN,
+        alpha: 0.0,
+        beta: 0.0,
+        gamma: 0.0,
       },
       speed: 0,
       motorR: 0,
@@ -81,14 +82,29 @@ export default {
     getLog: function () {
       return this.logMessages;
     },
+    isConnecting: function() {
+      return this.connecting;
+    },
     getAlpha: function () {
-      return this.orientation.alpha.toFixed(3);
+      if (typeof(this.orientation.alpha) === "number") {
+        return this.orientation.alpha.toFixed(3);
+      } else {
+        return 0.000;
+      }
     },
     getBeta: function () {
-      return this.orientation.beta.toFixed(3);
+      if (typeof(this.orientation.beta) === "number") {
+        return this.orientation.beta.toFixed(3);
+      } else {
+        return 0.000;
+      }
     },
     getGamma: function () {
-      return this.orientation.gamma.toFixed(3);
+      if (typeof(this.orientation.gamma) === "number") {
+        return this.orientation.gamma.toFixed(3);
+      } else {
+        return 0.000;
+      }
     },
   },
   created: function () {
@@ -116,13 +132,16 @@ export default {
     console.log("Bye!");
   },
   methods: {
-    debugLog: function (msg) {
-      console.log(msg);
-      let logData;
-      if (typeof(msg) === "string") {
-        logData = msg;
-      } else {
-        logData = JSON.stringify(msg, null, 2);
+    debugLog: function (...msg) {
+      console.log(...msg);
+      let logData = "";
+      for (let arg of msg) {
+        if (typeof(arg) === "object") {
+          logData += JSON.stringify(arg, null, 2);
+          logData += "\n"
+        } else {
+          logData += arg.toString();
+        }
       }
       this.logMessages += "\n" + logData;
     },
@@ -132,16 +151,32 @@ export default {
     },
     connectToCube: async function () {
       this.debugLog("connect to ble device");
+      this.ready = false;
+      this.connecting = true;
       if (!this.cube.isConnected()) {
-        await this.cube.connectDevice(this.disconnectHandler);
+        let cubeResult = await this.cube.connectDevice(this.disconnectHandler);
+        if (!cubeResult) {
+          console.log("Error:connection failed: 1");
+          this.connecting = false;
+          return;
+        }
         if (!this.cube.isConnected()) {
-          console.log("Error:failed to conenct");
+          console.log("Error:connection failed: 2");
+          this.connecting = false;
           return;
         }
         this.debugLog("add handler");
-        await this.cube.addHandler("motion", this.motionHandler);
+        cubeResult = await this.cube.addHandler("motion", this.motionHandler);
+        if (!cubeResult) {
+          this.connecting = false;
+          return;
+        }
         this.debugLog("lamp on");
-        await this.cube.setLamp(0x00, 0x60, 0x00);
+        cubeResult = await this.cube.setLamp(0x00, 0x60, 0x00);
+        if (!cubeResult) {
+          this.connecting = false;
+          return;
+        }
         this.debugLog("success to connect");
         this.ready = true;
       }
@@ -150,6 +185,7 @@ export default {
       if (this.cube.isConnected()) {
         await this.cube.setLamp(0, 0, 0);
         await this.cube.disconnectDevice(true);
+        this.connecting = false;
         this.ready = false;
       }
       console.log("disconnect with", this.cube.name)
