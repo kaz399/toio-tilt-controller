@@ -17,6 +17,10 @@ export class coreCube {
     this._resetParams(params);
   }
 
+  async _sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   _resetParams(params) {
     if (params === undefined) {
       params = {
@@ -33,7 +37,7 @@ export class coreCube {
     }
     this.name = params.name;
     this.logger = params.logger;
-    this.connected = false;
+    this.connecting = false;
     this.busy = false;
     this.moving = false;
     this.device = null;
@@ -54,7 +58,14 @@ export class coreCube {
   }
 
   isConnected() {
-    return this.connected;
+    if (this.device !== null) {
+      console.log("isConnected():device", this.device.gatt.connected);
+      console.log(this.device);
+      return this.device.gatt.connected;
+    } else {
+      console.log("isConnected():class", this.connecting);
+      return this.connecting;
+    }
   }
 
   isMoving() {
@@ -63,7 +74,7 @@ export class coreCube {
 
   async write(chrName, value) {
     let result = false;
-    if (this.connected && !this.busy ) {
+    if (this.isConnected() && !this.busy ) {
       this.busy = true;
       try {
         await this.characteristics[chrName].chr.writeValue(value);
@@ -80,7 +91,7 @@ export class coreCube {
 
   async read(chrName) {
     let result = false;
-    if (this.connected && !this.busy ) {
+    if (this.isConnected() && !this.busy ) {
       this.busy = true;
       try {
         const readData = this.characteristics[chrName].chr.readValue();
@@ -332,13 +343,28 @@ export class coreCube {
           filters: [{services: [this.SERVICE]}]
         });
       this.device = device;
-      this.connected = true;
+      this.connecting = true;
       this.logger('******** add disconnect listener');
       this.disconnectHandler.push(disconnectHandler);
       await device.addEventListener('gattserverdisconnected', disconnectHandler);
       const server = await device.gatt.connect();
+
+      const waitToConnect = async (times) => {
+        this.logger('wait to connect');
+        for (let count = 0; count < times; count++) {
+          if (device.gatt.connected) {
+            this.logger('connected: wait counter', count);
+            return true;
+          }
+          await this._sleep(100);
+        }
+        this.logger('connection timeout');
+        return false;
+      }
+
+      await waitToConnect(50);
+
       const service = await server.getPrimaryService(this.SERVICE);
-      console.log(service);
       this.logger(service);
       const characteristicsPromises = this.CHARACTERISTIC_LIST.map((ch) => {
         return service.getCharacteristic(ch.uuid);
@@ -350,9 +376,10 @@ export class coreCube {
 
       characteristics.forEach((chr) => {
         if (chr.status === 'fulfilled') {
-          console.log(chr);
+          console.log(typeof(chr.value));
+          console.log(chr.value);
           const chrName = this.uuidToChrName[chr.value.uuid];
-          this.characteristics[chrName].chr = chr.value;
+          this.characteristics[chrName].chr = chr.value, {};
         } else {
           this.logger('promise rejected:', chr.reason);
         }
@@ -362,20 +389,27 @@ export class coreCube {
       this.logger(this.characteristics);
       result = true;
     } catch(error) {
+      if (this.device !== null) {
+        await this.device.gatt.disconnect();
+      }
       this.logger(`ERROR:connectToDevice(): ${error}`);
+      this.connecting = false;
       result = false;
     }
     return result;
   }
 
   async addHandler(name, handler) {
-    this.logger(this.characteristics);
-    if (!(name in this.characteristics)) {
+    let characteristicNames = Object.keys(this.characteristics);
+    this.logger(characteristicNames);
+    this.logger(`add handler to ${name}`);
+    if (!characteristicNames.includes(name)) {
       this.logger(`ERROR:addHandler(): no characteristic ${name}`);
       return false;
     }
     try {
       let characteristic = this.characteristics[name];
+      this.logger('selected characteristic:', characteristic);
       characteristic.handler.push(handler);
       const chrHandler = characteristic.chr;
       const handlerResult = await chrHandler.startNotifications().then(() => {
