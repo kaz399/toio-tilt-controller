@@ -287,7 +287,12 @@ export class coreCube {
     if (!this.device.gatt.connected) {
       return false;
     }
+    if (this.busy) {
+      this.logger("Busy: can't disconnect");
+      return false;
+    }
     try {
+      this.busy = true;
       this.logger(this.characteristics);
       const stopNotifyChr = this.CHARACTERISTIC_LIST.map((chrList) => {
         const chrName = chrList.name;
@@ -326,6 +331,9 @@ export class coreCube {
       }
       result = false;
     }
+    finally {
+      this.busy = false;
+    }
 
     this._resetParams({
       name: this.name,
@@ -337,7 +345,12 @@ export class coreCube {
   async connectDevice(disconnectHandler) {
     let result = false;
     this.logger('***************************************** connect to cube');
+    if (this.busy) {
+      this.log("Busy: can't connect");
+      return false;
+    }
     try {
+      this.busy = true;
       const device = await navigator.bluetooth
         .requestDevice({
           filters: [{services: [this.SERVICE]}]
@@ -395,6 +408,9 @@ export class coreCube {
       this.logger(`ERROR:connectToDevice(): ${error}`);
       this.connecting = false;
       result = false;
+    }
+    finally {
+      this.busy = false;
     }
     return result;
   }
