@@ -59,11 +59,8 @@ export class coreCube {
 
   isConnected() {
     if (this.device !== null) {
-      console.log("isConnected():device", this.device.gatt.connected);
-      console.log(this.device);
       return this.device.gatt.connected;
     } else {
-      console.log("isConnected():class", this.connecting);
       return this.connecting;
     }
   }
