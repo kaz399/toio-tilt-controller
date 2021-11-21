@@ -1,12 +1,26 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    試作その4
+    試作その10
     <p>
       Vue + web bluetooth による
       <br />
       toio &trade; core cube 制御サンプルプログラム<br />
     </p>
+    <div v-if="appleDevice">
+      <h3>Apple社製デバイスをお使いの方へ</h3>
+      <br />
+      Apple社製のデバイスで動作させるには、WebBLE（有料アプリ）が必要です
+      <br />
+      また、ユーザーによる位置情報利用の許可が必要になります
+      <br />
+      下記ボタンを押して位置情報を許可してください
+      <br />
+      <br />
+      <br />
+      <button v-on:click="reqestPermissionOnAppleDeVice">位置情報利用を許可してください</button>
+      <br />
+    </div>
     <h3>toio &trade; core cube と接続</h3>
     <br />
     <div v-if="isConnecting">
@@ -73,6 +87,7 @@ export default {
       motorR: 0,
       motorL: 0,
       logMessages: "",
+      appleDevice: false,
     }
   },
   computed: {
@@ -116,9 +131,15 @@ export default {
   mounted: function () {
     if (window.DeviceOrientationEvent) {
       console.log("DeviceOrientation is supported");
-      window.addEventListener("deviceorientation", this.orientationHandler, false);
+      if(DeviceOrientationEvent.requestPermission) {
+        this.appleDevice = true;
+        this.debugLog("*** Apple Device");
+      } else {
+        this.debugLog("*** Normal Device");
+      }
     } else {
-      this.logMessages("ERROR:DeviceOrientation is not supported");
+      this.debugLog("ERROR:DeviceOrientation is not supported");
+      window.addEventListener("deviceorientation", this.orientationHandler, false);
     }
   },
   beforeUnmount: async function () {
@@ -144,6 +165,16 @@ export default {
         }
       }
       this.logMessages += "\n" + logData;
+    },
+    reqestPermissionOnAppleDeVice: function () {
+      DeviceOrientationEvent.requestPermission().then(function(response){
+        if(response === "granted"){
+          console.log("granted");
+        }
+      }).catch(function(e) {
+        console.log(e);
+      });
+      window.addEventListener("deviceorientation", this.orientationHandler, false);
     },
     disconnectHandler: async function () {
       console.log("disconnect");
