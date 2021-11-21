@@ -6,6 +6,7 @@
       Vue + web bluetooth による
       <br />
       toio &trade; core cube 制御サンプルプログラム<br />
+      コードは<a href="https://github.com/kaz399/toio-tilt-controller">https://github.com/kaz399/toio-tilt-controller</a>
     </p>
     <div v-if="appleDevice">
       <h3>Apple社製デバイスをお使いの方へ</h3>

@@ -1,5 +1,7 @@
 # toio-tilt-controller
 
+Remote Controller for toio core cube using tilt detection
+
 ## Project setup
 ```
 npm install
