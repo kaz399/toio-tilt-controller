@@ -1,6 +1,9 @@
 // ***********************************************************
 // Control toio core cube with web bluetooth
 
+let thisDevice = null;
+let thisCharacteristics = null;
+
 export class coreCube {
 
   constructor(params) {
@@ -40,12 +43,12 @@ export class coreCube {
     this.connecting = false;
     this.busy = false;
     this.moving = false;
-    this.device = null;
-    this.characteristics = {};
+    thisDevice = null;
+    thisCharacteristics = {};
     this.uuidToChrName = {};
     this.chrNameToUuid = {};
     this.CHARACTERISTIC_LIST.forEach((c) => {
-      this.characteristics[c.name] = {
+      thisCharacteristics[c.name] = {
         name: c.name,
         chr: null,
         handler: []
@@ -58,8 +61,8 @@ export class coreCube {
   }
 
   isConnected() {
-    if (this.device !== null) {
-      return this.device.gatt.connected;
+    if (thisDevice !== null) {
+      return thisDevice.gatt.connected;
     } else {
       return this.connecting;
     }
@@ -74,7 +77,7 @@ export class coreCube {
     if (this.isConnected() && !this.busy ) {
       this.busy = true;
       try {
-        await this.characteristics[chrName].chr.writeValue(value);
+        await thisCharacteristics[chrName].chr.writeValue(value);
         result = true;
       } catch (e) {
         this.logger(`ble write error ${e}`);
@@ -91,7 +94,7 @@ export class coreCube {
     if (this.isConnected() && !this.busy ) {
       this.busy = true;
       try {
-        const readData = this.characteristics[chrName].chr.readValue();
+        const readData = thisCharacteristics[chrName].chr.readValue();
         result = readData;
       } catch (e) {
         this.logger(`ble read error ${e}`);
@@ -158,7 +161,7 @@ export class coreCube {
     this.logger(`moving options ${movingMode}, ${accelerationMode}`);
     const value = new Uint8Array([0x03, currentCommandId, timeout, movingMode, speed, accelerationMode, 0x00, x_l, x_h, y_l, y_h, degree_l, degree_h]);
     const currentCube = this;
-    const motorChr = this.characteristics['motor'].chr;
+    const motorChr = thisCharacteristics['motor'].chr;
 
     const resolver = new Promise(function(resolve, reject) {
       let moveToResultHandler = null;
@@ -281,7 +284,7 @@ export class coreCube {
 
   async disconnectDevice(force) {
     let result = false;
-    if (!this.device.gatt.connected) {
+    if (!thisDevice.gatt.connected) {
       return false;
     }
     if (this.busy) {
@@ -290,18 +293,18 @@ export class coreCube {
     }
     try {
       this.busy = true;
-      this.logger(this.characteristics);
+      this.logger(thisCharacteristics);
       const stopNotifyChr = this.CHARACTERISTIC_LIST.map((chrList) => {
         const chrName = chrList.name;
         this.logger(`stop notify ${chrName}`);
-        return this.characteristics[chrName].chr.stopNotifications();
+        return thisCharacteristics[chrName].chr.stopNotifications();
       });
 
       const disabledNotifyChr = await Promise.allSettled(stopNotifyChr);
       disabledNotifyChr.forEach((chr) => {
         if (chr.status === "fulfilled") {
           const chrName = this.uuidToChrName[chr.value.uuid];
-          const registeredHandlers = this.characteristics[chrName].handler;
+          const registeredHandlers = thisCharacteristics[chrName].handler;
           this.logger(`remove handler ${chrName}`);
           registeredHandlers.forEach((handler) => {
             chr.value.removeEventListener('characteristicvaluechanged', handler);
@@ -313,18 +316,18 @@ export class coreCube {
 
       this.logger(`remove disconnectHandler`);
       this.disconnectHandler.forEach((handler) => {
-        this.device.removeEventListener(
+        thisDevice.removeEventListener(
           'gattserverdisconnected',
           handler);
       });
       this.logger(`disconnect`);
-      await this.device.gatt.disconnect();
+      await thisDevice.gatt.disconnect();
       result = true;
     } catch (err) {
       this.logger('disconnectDevice:Error');
       this.logger(err);
       if (force !== undefined && force === true) {
-        await this.device.gatt.disconnect();
+        await thisDevice.gatt.disconnect();
       }
       result = false;
     }
@@ -348,21 +351,20 @@ export class coreCube {
     }
     try {
       this.busy = true;
-      const device = await navigator.bluetooth
+      thisDevice = await navigator.bluetooth
         .requestDevice({
           filters: [{services: [this.SERVICE]}]
         });
-      this.device = device;
       this.connecting = true;
       this.logger('******** add disconnect listener');
       this.disconnectHandler.push(disconnectHandler);
-      await device.addEventListener('gattserverdisconnected', disconnectHandler);
-      const server = await device.gatt.connect();
+      await thisDevice.addEventListener('gattserverdisconnected', disconnectHandler);
+      const server = await thisDevice.gatt.connect();
 
       const waitToConnect = async (times) => {
         this.logger('wait to connect');
         for (let count = 0; count < times; count++) {
-          if (device.gatt.connected) {
+          if (thisDevice.gatt.connected) {
             this.logger('connected: wait counter', count);
             return true;
           }
@@ -389,18 +391,18 @@ export class coreCube {
           console.log(typeof(chr.value));
           console.log(chr.value);
           const chrName = this.uuidToChrName[chr.value.uuid];
-          this.characteristics[chrName].chr = chr.value, {};
+          thisCharacteristics[chrName].chr = chr.value, {};
         } else {
           this.logger('promise rejected:', chr.reason);
         }
       });
 
-      this.logger('******** this.characteristics');
-      this.logger(this.characteristics);
+      this.logger('******** thisCharacteristics');
+      this.logger(thisCharacteristics);
       result = true;
     } catch(error) {
-      if (this.device !== null) {
-        await this.device.gatt.disconnect();
+      if (thisDevice !== null) {
+        await thisDevice.gatt.disconnect();
       }
       this.logger(`ERROR:connectToDevice(): ${error}`);
       this.connecting = false;
@@ -413,7 +415,7 @@ export class coreCube {
   }
 
   async addHandler(name, handler) {
-    let characteristicNames = Object.keys(this.characteristics);
+    let characteristicNames = Object.keys(thisCharacteristics);
     this.logger(characteristicNames);
     this.logger(`add handler to ${name}`);
     if (!characteristicNames.includes(name)) {
@@ -421,7 +423,7 @@ export class coreCube {
       return false;
     }
     try {
-      let characteristic = this.characteristics[name];
+      let characteristic = thisCharacteristics[name];
       this.logger('selected characteristic:', characteristic);
       characteristic.handler.push(handler);
       const chrHandler = characteristic.chr;
