@@ -136,10 +136,10 @@ export default {
         this.debugLog("*** Apple Device");
       } else {
         this.debugLog("*** Normal Device");
+        window.addEventListener("deviceorientation", this.orientationHandler, false);
       }
     } else {
       this.debugLog("ERROR:DeviceOrientation is not supported");
-      window.addEventListener("deviceorientation", this.orientationHandler, false);
     }
   },
   beforeUnmount: async function () {
@@ -214,6 +214,7 @@ export default {
     },
     disconnectWithCube: async function () {
       if (this.cube.isConnected()) {
+        await this.cube.setMotor(0, 0);
         await this.cube.setLamp(0, 0, 0);
         await this.cube.disconnectDevice(true);
         this.connecting = false;
