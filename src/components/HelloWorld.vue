@@ -63,6 +63,23 @@
 <script>
 import { coreCube } from "../libs/CoreCube.js";
 
+// https://stackoverflow.com/questions/9382167/serializing-object-that-contains-cyclic-object-value
+function decycle(obj, stack = []) {
+  if (!obj || typeof obj !== 'object')
+    return obj;
+
+  if (stack.includes(obj))
+    return null;
+
+  let s = stack.concat([obj]);
+
+  return Array.isArray(obj)
+    ? obj.map(x => decycle(x, s))
+    : Object.fromEntries(
+      Object.entries(obj)
+      .map(([k, v]) => [k, decycle(v, s)]));
+}
+
 function roundToEven(n) {
   var r = (0 < n) ? n % 2 : (n % 2) + 2;
   return (1 < r) ?  Math.floor(n + 0.5) : Math.ceil(n - 0.5);
@@ -159,7 +176,7 @@ export default {
       let logData = "";
       for (let arg of msg) {
         if (typeof(arg) === "object") {
-          logData += JSON.stringify(arg, null, 2);
+          logData += JSON.stringify(arg, decycle, 2);
           logData += "\n"
         } else {
           logData += arg.toString();

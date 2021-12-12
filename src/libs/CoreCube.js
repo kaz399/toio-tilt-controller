@@ -377,7 +377,7 @@ export class coreCube {
       await waitToConnect(50);
 
       const service = await server.getPrimaryService(this.SERVICE);
-      this.logger(service);
+      // this.logger(service);
       const characteristicsPromises = this.CHARACTERISTIC_LIST.map((ch) => {
         return service.getCharacteristic(ch.uuid);
       });
@@ -387,11 +387,14 @@ export class coreCube {
       this.logger(characteristics);
 
       characteristics.forEach((chr) => {
+        this.logger(chr.status);
         if (chr.status === 'fulfilled') {
-          console.log(typeof(chr.value));
-          console.log(chr.value);
-          const chrName = this.uuidToChrName[chr.value.uuid];
-          thisCharacteristics[chrName].chr = chr.value, {};
+          this.logger(typeof(chr.value));
+          this.logger(chr.value);
+          this.logger(chr.value.uuid.toLowerCase());
+          const chrName = this.uuidToChrName[chr.value.uuid.toLowerCase()];
+          this.logger(chrName);
+          thisCharacteristics[chrName].chr = chr.value;
         } else {
           this.logger('promise rejected:', chr.reason);
         }
