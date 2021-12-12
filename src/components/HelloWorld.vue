@@ -197,12 +197,6 @@ export default {
           this.connecting = false;
           return;
         }
-        this.debugLog("add handler");
-        cubeResult = await this.cube.addHandler("motion", this.motionHandler);
-        if (!cubeResult) {
-          this.connecting = false;
-          return;
-        }
         this.debugLog("lamp on");
         cubeResult = await this.cube.setLamp(0x00, 0x60, 0x00);
         if (!cubeResult) {
