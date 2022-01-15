@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    試作その10
+    試作その11
     <p>
       Vue + web bluetooth による
       <br />

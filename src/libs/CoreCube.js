@@ -376,10 +376,16 @@ export class coreCube {
 
       await waitToConnect(50);
 
+      this.logger('get primary service');
       const service = await server.getPrimaryService(this.SERVICE);
+      await this._sleep(100);
       // this.logger(service);
-      const characteristicsPromises = this.CHARACTERISTIC_LIST.map((ch) => {
-        return service.getCharacteristic(ch.uuid);
+      this.logger('get characteristics');
+      const characteristicsPromises = this.CHARACTERISTIC_LIST.map(async (ch) => {
+        await this._sleep(10);
+        let result = service.getCharacteristic(ch.uuid);
+        this.logger('characteristic: ', ch.uuid, result);
+        return result;
       });
       this.logger(characteristicsPromises);
       const characteristics = await Promise.allSettled(characteristicsPromises);
